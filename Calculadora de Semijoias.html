@@ -1,0 +1,658 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Calculadora de Semijoias</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: faixa de resumo no topo, premissas em três blocos, produtos separados por categoria, cada peça com entradas à esquerda e resultados à vista x cartão à direita. */
+:root{
+  --bg:#F3F4F7; --surface:#FFFFFF; --field:#F6F7FA; --ink:#1A2233; --muted:#596378; --line:#DCE0E8;
+  --gold:#8A641A; --note-bg:#F7F0DE; --av:#17695E; --cc:#6B4A9C; --good:#1B7F4B; --bad:#B3342B; --focus:#3B5BDB;
+  --font-display:'Bodoni Moda','Didot','Bodoni 72',Georgia,serif;
+  --font-body:'Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1522; --surface:#171E2E; --field:#101827; --ink:#E8ECF4; --muted:#9BA6BB; --line:#2A3449;
+    --gold:#D8B46A; --note-bg:#2A2416; --av:#5CC2B0; --cc:#B79BEA; --good:#52C48A; --bad:#F27A70; --focus:#8FA8FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1522; --surface:#171E2E; --field:#101827; --ink:#E8ECF4; --muted:#9BA6BB; --line:#2A3449;
+  --gold:#D8B46A; --note-bg:#2A2416; --av:#5CC2B0; --cc:#B79BEA; --good:#52C48A; --bad:#F27A70; --focus:#8FA8FF;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font:15px/1.45 var(--font-body); font-variant-numeric:tabular-nums;
+  padding-block:22px 96px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:1080px;margin-inline:auto;display:grid;gap:34px}
+h1,h2,h3{margin:0;text-wrap:balance}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* topo */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px}
+.eyebrow{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(28px,6vw,42px);line-height:1.05}
+.status{font-size:13px;color:var(--muted);padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+
+/* resumo */
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stat{background:var(--surface);padding:16px 18px;min-width:0}
+.stat .lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .val{font-family:var(--font-display);font-weight:700;font-size:clamp(24px,5vw,32px);line-height:1.15;margin-top:4px;overflow-wrap:anywhere}
+.stat .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+
+/* seções */
+.sec-h{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px;margin-bottom:14px}
+h2{font-family:var(--font-display);font-weight:700;font-size:clamp(22px,4.5vw,28px)}
+.sec-h p{margin:2px 0 0;color:var(--muted);font-size:14px;max-width:60ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}
+.set-grp{display:grid;gap:12px;align-content:start;min-width:0}
+.set-grp h3{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+
+/* campos */
+.f{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-width:0}
+.f.wide{grid-column:1/-1}
+.lbl{font-size:12.5px;color:var(--muted);font-weight:500;line-height:1.25}
+.inp{display:flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:8px;min-width:0}
+.inp:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+.inp input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;padding:9px 10px;outline:none}
+.inp input::placeholder{color:var(--muted);opacity:.7}
+.inp i{font-style:normal;color:var(--muted);font-size:13px}
+.inp i.pre{padding-left:10px}
+.inp i.suf{padding-right:10px}
+.inp i.pre + input{padding-left:6px}
+.inp input:has(+ i.suf){padding-right:4px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.chk input{margin-top:3px;width:17px;height:17px;accent-color:var(--ink);flex:none}
+.chk span{font-size:14px}
+.chk small{display:block;color:var(--muted);font-size:12px}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--field);gap:2px}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:600;padding:8px 10px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 14px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 8px;font-size:13px}
+.btn.ghost:hover{color:var(--ink);text-decoration:underline}
+
+.note{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:var(--note-bg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.note p{margin:0;flex:1 1 260px;font-size:14px}
+.alert{background:var(--surface);border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:14px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+
+/* produtos */
+.grp{margin-bottom:26px}
+.grp-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.grp-h h3{font-family:var(--font-display);font-size:22px;font-weight:700}
+.grp-h .meta{color:var(--muted);font-size:13.5px}
+.grp-h .sp{flex:1}
+.grp-body{display:grid;gap:12px}
+.prod{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.p-in{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start}
+.p-out{min-width:0}
+.cost{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;color:var(--muted);margin-bottom:6px}
+.cost b{color:var(--ink)}
+.res{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);column-gap:10px;align-items:baseline}
+.res > *{padding:7px 0;border-bottom:1px solid var(--line);min-width:0}
+.res .h{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;text-align:right;border-bottom-width:2px}
+.res .h.av{color:var(--av);border-bottom-color:var(--av)}
+.res .h.cc{color:var(--cc);border-bottom-color:var(--cc)}
+.res .k{font-size:13.5px;color:var(--muted)}
+.res .v{text-align:right;font-weight:600;overflow-wrap:anywhere}
+.res .price{font-family:var(--font-display);font-size:clamp(18px,4.6vw,23px);font-weight:700;line-height:1.1}
+.res .lucro{color:var(--good)}
+.res .lucro.neg{color:var(--bad)}
+.disc{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.disc b{color:var(--ink)}
+.p-act{display:flex;gap:4px;justify-content:flex-end;border-top:1px solid var(--line);padding-top:10px;margin-top:-4px}
+.vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+.add-row{display:flex;justify-content:center;margin-top:6px}
+
+/* categorias */
+.crow{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) minmax(0,1fr);gap:6px 16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.crow:last-child{border-bottom:0}
+.cname{font-weight:600}
+.cname small,.cnum small{display:block;color:var(--muted);font-weight:400;font-size:12.5px}
+.cbar{height:12px;border-radius:6px;background:var(--field);border:1px solid var(--line);overflow:hidden}
+.cbar i{display:block;height:100%;background:var(--gold);border-radius:6px}
+.cnum{text-align:right;font-weight:700}
+
+details.how{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+details.how summary{cursor:pointer;font-weight:600}
+details.how ul{margin:12px 0 0;padding-left:20px;display:grid;gap:6px;color:var(--muted);font-size:14px}
+details.how code{color:var(--ink);font-family:inherit;font-weight:600}
+
+#toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));margin-inline:auto;width:fit-content;max-width:100%;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;display:flex;gap:14px;align-items:center;z-index:20;font-size:14px}
+#toast button{background:transparent;border:0;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
+
+@media (min-width:780px){
+  .prod{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);column-gap:28px}
+  .p-in{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .p-act{grid-column:1/-1}
+}
+@media (max-width:620px){
+  .crow{grid-template-columns:minmax(0,1fr) auto}
+  .crow .cbar{grid-column:1/-1;order:3}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Precificação para semijoias</p>
+      <h1>Calculadora de Semijoias</h1>
+    </div>
+    <span class="status" id="status" role="status">Salva automaticamente</span>
+  </header>
+
+  <section class="sum" aria-label="Resumo do mês">
+    <div class="stat"><div class="lbl">Faturamento do mês</div><div class="val" id="s-fat">—</div><div class="sub" id="s-qtd">estimado pela sua lista</div></div>
+    <div class="stat"><div class="lbl">Lucro líquido do mês</div><div class="val" id="s-luc">—</div><div class="sub">depois de impostos, taxas e despesas fixas</div></div>
+    <div class="stat"><div class="lbl">Margem líquida</div><div class="val" id="s-mliq">—</div><div class="sub">do que você fatura</div></div>
+    <div class="stat"><div class="lbl">Markup médio</div><div class="val" id="s-mk">—</div><div class="sub" id="s-mkx">sobre o custo das peças</div></div>
+  </section>
+
+  <section aria-labelledby="h-prem">
+    <div class="sec-h"><div><h2 id="h-prem">Premissas da loja</h2><p>Estes valores valem para todas as peças. Mude e veja os preços se ajustarem.</p></div></div>
+    <div class="panel">
+      <div class="set-grid">
+        <div class="set-grp">
+          <h3>Como definir o preço</h3>
+          <div class="seg" role="group" aria-label="Método de cálculo">
+            <button type="button" data-modo="margem" aria-pressed="true">Pela margem</button>
+            <button type="button" data-modo="markup" aria-pressed="false">Pelo markup</button>
+          </div>
+          <label class="f" id="f-margem"><span class="lbl">Margem de lucro líquida desejada</span>
+            <div class="inp"><input id="c-margem" data-cfg="margem" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div>
+            <p class="hint">Quanto sobra de cada venda depois de tudo, em % do preço.</p></label>
+          <label class="f" id="f-markup" hidden><span class="lbl">Markup sobre o custo</span>
+            <div class="inp"><input id="c-markup" data-cfg="markup" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div>
+            <p class="hint">Quanto somar ao custo. 100% dobra o custo da peça.</p></label>
+          <label class="chk"><input type="checkbox" id="c-arred" data-cfg="arredondar"><span>Arredondar o preço para ,90<small>Exemplo: R$ 32,90 em vez de R$ 32,06.</small></span></label>
+        </div>
+
+        <div class="set-grp">
+          <h3>Taxas sobre cada venda</h3>
+          <div class="two">
+            <label class="f"><span class="lbl">Impostos</span>
+              <div class="inp"><input id="c-imp" data-cfg="imp" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div></label>
+            <label class="f"><span class="lbl">Comissão</span>
+              <div class="inp"><input id="c-com" data-cfg="com" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div></label>
+            <label class="f"><span class="lbl">Taxa à vista</span>
+              <div class="inp"><input id="c-tav" data-cfg="tav" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div></label>
+            <label class="f"><span class="lbl">Taxa do cartão</span>
+              <div class="inp"><input id="c-tcc" data-cfg="tcc" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div></label>
+          </div>
+          <p class="hint">MEI: use 0% de imposto e coloque o DAS nas despesas fixas. Taxa à vista vale para Pix, dinheiro ou débito.</p>
+          <label class="chk"><input type="checkbox" id="c-rep" data-cfg="repassar"><span>Repassar a taxa do cartão no preço<small>O preço no cartão fica mais alto para cobrir a maquininha.</small></span></label>
+        </div>
+
+        <div class="set-grp">
+          <h3>Despesas fixas e vendas</h3>
+          <label class="f"><span class="lbl">Despesas fixas por mês</span>
+            <div class="inp"><i class="pre">R$</i><input id="c-fixas" data-cfg="fixas" inputmode="decimal" autocomplete="off"></div>
+            <p class="hint">Aluguel, internet, anúncios, contador, DAS do MEI.</p></label>
+          <label class="f"><span class="lbl">Vendas esperadas por mês</span>
+            <div class="inp"><i class="pre">R$</i><input id="c-vendas" data-cfg="vendas" inputmode="decimal" autocomplete="off"></div></label>
+          <label class="f"><span class="lbl">Parte das vendas que passa no cartão</span>
+            <div class="inp"><input id="c-pcc" data-cfg="pcc" inputmode="decimal" autocomplete="off"><i class="suf">%</i></div></label>
+          <p class="hint" id="rateio"></p>
+          <div class="note" id="hint-vendas" hidden style="margin:0">
+            <p id="hint-vendas-t"></p>
+            <button class="btn sm" type="button" id="btn-vendas">Usar o valor da lista</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert" id="alerta" role="alert" hidden style="margin-top:16px"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-prod">
+    <div class="sec-h">
+      <div><h2 id="h-prod">Produtos</h2><p>Informe o custo de cada peça. Os preços, margens e lucro aparecem ao lado, à vista e no cartão.</p></div>
+      <div class="tools">
+        <button class="btn" type="button" id="btn-copiar">Copiar tabela de preços</button>
+        <button class="btn primary" type="button" id="btn-add">Adicionar produto</button>
+      </div>
+    </div>
+    <div class="note" id="aviso-ex" hidden>
+      <p>Os produtos abaixo são exemplos. Troque pelos custos da sua loja ou comece do zero.</p>
+      <button class="btn sm primary" type="button" id="btn-zero">Começar do zero</button>
+      <button class="btn sm ghost" type="button" id="btn-fechar-ex">Fechar aviso</button>
+    </div>
+    <div id="lista"></div>
+    <div class="vazio" id="vazio" hidden>Nenhum produto ainda. Toque em Adicionar produto para começar.</div>
+    <datalist id="cats"></datalist>
+  </section>
+
+  <section aria-labelledby="h-cat">
+    <div class="sec-h"><div><h2 id="h-cat">Lucro por categoria</h2><p>Soma do mês, considerando as quantidades e a parte das vendas no cartão.</p></div></div>
+    <div class="panel" id="porcat"></div>
+  </section>
+
+  <details class="how">
+    <summary>Como os cálculos são feitos</summary>
+    <ul>
+      <li><code>Custo total</code> = custo da peça + embalagem + outros custos.</li>
+      <li><code>Preço à vista pela margem</code> = custo ÷ (1 − impostos − comissão − taxa à vista − rateio das despesas fixas − margem desejada).</li>
+      <li><code>Preço à vista pelo markup</code> = custo × (1 + markup).</li>
+      <li><code>Preço no cartão</code> = preço à vista × (1 − taxa à vista) ÷ (1 − taxa do cartão), quando a taxa é repassada. Sem repasse, o preço é o mesmo.</li>
+      <li><code>Rateio das despesas fixas</code> = despesas fixas ÷ vendas esperadas, aplicado como % do preço de cada peça.</li>
+      <li><code>Lucro líquido</code> = preço × (1 − impostos − comissão − taxa − rateio) − custo total.</li>
+      <li><code>Margem líquida</code> = lucro líquido ÷ preço. <code>Margem bruta</code> = (preço − custo) ÷ preço. <code>Markup</code> = preço ÷ custo − 1.</li>
+    </ul>
+  </details>
+</div>
+
+<div id="toast" role="status" hidden><span id="toast-t"></span><button type="button" id="toast-b" hidden>Desfazer</button></div>
+
+<script>
+/*PURE-START*/
+function pnum(s){
+  if(typeof s==='number') return isFinite(s)?s:0;
+  s=String(s==null?'':s).trim().replace(/[^\d,.\-]/g,'');
+  if(!s) return 0;
+  if(s.indexOf(',')>=0) s=s.replace(/\./g,'').replace(',','.');
+  else if(/^\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+  var v=parseFloat(s);
+  return isFinite(v)?v:0;
+}
+function round90(p){ return Math.round((Math.ceil(p+0.10-1e-9)-0.10)*100)/100; }
+function roundCents(p){ return Math.ceil(p*100-1e-7)/100; }
+function calc(it,cfg){
+  var n=pnum;
+  var custo=n(it.peca)+n(it.emb)+n(it.out);
+  if(!(custo>0)) return null;
+  var imp=n(cfg.imp)/100, com=n(cfg.com)/100, tav=n(cfg.tav)/100, tcc=n(cfg.tcc)/100;
+  var vend=n(cfg.vendas), fix=vend>0?n(cfg.fixas)/vend:0;
+  var raw;
+  if(cfg.modo==='markup'){ raw=custo*(1+n(cfg.markup)/100); }
+  else{
+    var d=1-imp-com-tav-fix-n(cfg.margem)/100;
+    if(d<=0.02) return {custo:custo,invalid:true};
+    raw=custo/d;
+  }
+  if(!(raw>0)||!isFinite(raw)) return {custo:custo,invalid:true};
+  var rd=cfg.arredondar?round90:roundCents;
+  var pav=rd(raw), pcc=pav;
+  if(cfg.repassar){
+    if(tcc>=0.99) return {custo:custo,invalid:true};
+    pcc=rd(pav*(1-tav)/(1-tcc));
+  }
+  if(pcc<pav) pcc=pav;
+  function mk(p,t){
+    var lucro=p*(1-imp-com-t-fix)-custo;
+    return {preco:p,markup:p/custo-1,mbruta:(p-custo)/p,lucro:lucro,mliq:lucro/p};
+  }
+  return {custo:custo,av:mk(pav,tav),cc:mk(pcc,tcc),desc:1-pav/pcc,fix:fix};
+}
+/*PURE-END*/
+
+(function(){
+  var LS_KEY='semijoias-calc-v1';
+  var DB_PATH='calculadora/loja';
+  var $=function(s){return document.querySelector(s)};
+  var lista=$('#lista');
+  var state=null;
+  var R=new Map();
+
+  var brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+  function fm(v){return isFinite(v)?brl.format(v):'—'}
+  function fp(v){return isFinite(v)?(v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%':'—'}
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function uid(){return Math.random().toString(36).slice(2,9)}
+  function mkItem(nome,cat,peca,emb,out,qtd){return {id:uid(),nome:nome,cat:cat,peca:peca,emb:emb,out:out,qtd:qtd}}
+
+  function defaults(){
+    return {
+      v:1, sample:true, rev:0,
+      cfg:{modo:'margem',margem:'35',markup:'120',arredondar:true,repassar:true,imp:'4',com:'0',tav:'0',tcc:'5',fixas:'900',vendas:'9000',pcc:'60'},
+      items:[
+        mkItem('Argola média banhada a ouro','Brincos','14,00','1,50','0,80','20'),
+        mkItem('Ear cuff com zircônia','Brincos','9,50','1,50','0,80','12'),
+        mkItem('Gargantilha ponto de luz','Colares','18,00','1,50','1,20','10'),
+        mkItem('Corrente veneziana 45 cm','Colares','22,00','1,50','1,20','8'),
+        mkItem('Pulseira riviera com zircônias','Pulseiras','26,00','1,50','1,20','8'),
+        mkItem('Anel solitário ajustável','Anéis','12,00','1,20','0,80','14'),
+        mkItem('Anel de coração vazado','Anéis','10,50','1,20','0,80','10')
+      ]
+    };
+  }
+  function normalize(s){
+    var d=defaults();
+    if(!s||typeof s!=='object') return d;
+    var out={v:1,sample:!!s.sample,rev:Number(s.rev)||0,cfg:Object.assign({},d.cfg,s.cfg||{}),items:[]};
+    out.items=(Array.isArray(s.items)?s.items:[]).map(function(i){
+      return {id:i.id||uid(),nome:i.nome||'',cat:i.cat||'',peca:i.peca||'',emb:i.emb||'',out:i.out||'',qtd:i.qtd||''};
+    });
+    return out;
+  }
+  function loadLocal(){try{var s=localStorage.getItem(LS_KEY);return s?JSON.parse(s):null}catch(e){return null}}
+  function saveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}}
+
+  /* ---------- status e gravação ---------- */
+  var ref=null, saving=false, pending=false, timer=null;
+  function setStatus(t){$('#status').textContent=t}
+  function touch(){
+    state.rev=Date.now();
+    if(state.sample){state.sample=false;$('#aviso-ex').hidden=true}
+    saveLocal();
+    setStatus('Salvando…');
+    clearTimeout(timer);
+    timer=setTimeout(flush,900);
+  }
+  function flush(){
+    if(!ref){setStatus('Salvo neste aparelho');return}
+    if(saving){pending=true;return}
+    saving=true;
+    ref.set(JSON.parse(JSON.stringify(state))).then(function(){setStatus('Salvo')},function(){setStatus('Salvo neste aparelho')}).then(function(){
+      saving=false;
+      if(pending){pending=false;flush()}
+    });
+  }
+  function editing(){var a=document.activeElement;return !!(a&&a.tagName==='INPUT'&&a.type!=='checkbox')}
+
+  /* ---------- helpers de produto ---------- */
+  function catKey(it){return ((it.cat||'').trim().toLowerCase())||'sem categoria'}
+  function catName(it){return (it.cat||'').trim()||'Sem categoria'}
+  function byId(id){return state.items.find(function(i){return i.id===id})}
+  function cardEl(id){return lista.querySelector('.prod[data-id="'+id+'"]')}
+  function groupEl(k){return lista.querySelector('.grp[data-k="'+CSS.escape(k)+'"]')}
+
+  function field(label,f,id,val,pre,ph){
+    return '<label class="f"><span class="lbl">'+label+'</span><div class="inp">'+(pre?'<i class="pre">R$</i>':'')+
+      '<input id="'+id+'-'+f+'" data-f="'+f+'" inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="'+ph+'" value="'+esc(val)+'"></div></label>';
+  }
+  function makeCard(it){
+    var el=document.createElement('article');
+    el.className='prod'; el.dataset.id=it.id; el.dataset.k=catKey(it);
+    el.innerHTML=
+      '<div class="p-in">'+
+        '<label class="f wide"><span class="lbl">Produto</span><div class="inp"><input id="'+it.id+'-nome" data-f="nome" autocomplete="off" placeholder="Ex.: Brinco argola média" value="'+esc(it.nome)+'"></div></label>'+
+        '<label class="f wide"><span class="lbl">Categoria</span><div class="inp"><input id="'+it.id+'-cat" data-f="cat" list="cats" autocomplete="off" placeholder="Ex.: Brincos" value="'+esc(it.cat)+'"></div></label>'+
+        field('Custo da peça','peca',it.id,it.peca,true,'0,00')+
+        field('Embalagem','emb',it.id,it.emb,true,'0,00')+
+        field('Outros custos','out',it.id,it.out,true,'0,00')+
+        '<label class="f"><span class="lbl">Qtd. vendida por mês</span><div class="inp"><input id="'+it.id+'-qtd" data-f="qtd" inputmode="numeric" autocomplete="off" placeholder="0" value="'+esc(it.qtd)+'"></div></label>'+
+      '</div>'+
+      '<div class="p-out">'+
+        '<div class="cost"><span>Custo total da peça</span><b data-o="custo">—</b></div>'+
+        '<div class="res">'+
+          '<span></span><span class="h av">À vista</span><span class="h cc">Cartão</span>'+
+          '<span class="k">Preço de venda</span><b class="v price" data-o="pav">—</b><b class="v price" data-o="pcc">—</b>'+
+          '<span class="k">Markup</span><span class="v" data-o="mkav">—</span><span class="v" data-o="mkcc">—</span>'+
+          '<span class="k">Margem bruta</span><span class="v" data-o="mbav">—</span><span class="v" data-o="mbcc">—</span>'+
+          '<span class="k">Lucro líquido</span><b class="v lucro" data-o="lcav">—</b><b class="v lucro" data-o="lccc">—</b>'+
+          '<span class="k">Margem líquida</span><span class="v" data-o="mlav">—</span><span class="v" data-o="mlcc">—</span>'+
+        '</div>'+
+        '<p class="disc">Desconto de quem paga à vista: <b data-o="desc">—</b></p>'+
+      '</div>'+
+      '<div class="p-act"><button class="btn ghost" type="button" data-act="dup">Duplicar</button><button class="btn ghost" type="button" data-act="del">Remover</button></div>';
+    return el;
+  }
+  function makeGroup(k,name){
+    var s=document.createElement('section');
+    s.className='grp'; s.dataset.k=k;
+    s.innerHTML='<header class="grp-h"><h3>'+esc(name)+'</h3><span class="meta"><span data-o="g-n"></span> · lucro no mês <b data-o="g-luc"></b></span><span class="sp"></span><button class="btn sm" type="button" data-act="add-cat">Adicionar peça</button></header><div class="grp-body"></div>';
+    return s;
+  }
+  function refreshCats(){
+    var seen={},html='';
+    state.items.forEach(function(it){
+      var n=(it.cat||'').trim(); if(!n) return;
+      var k=n.toLowerCase(); if(seen[k]) return; seen[k]=1;
+      html+='<option value="'+esc(n)+'"></option>';
+    });
+    $('#cats').innerHTML=html;
+  }
+  function buildAll(){
+    lista.innerHTML='';
+    var order=[],map={};
+    state.items.forEach(function(it){
+      var k=catKey(it);
+      if(!map[k]){map[k]=catName(it);order.push(k)}
+    });
+    order.forEach(function(k){lista.appendChild(makeGroup(k,map[k]))});
+    state.items.forEach(function(it){groupEl(catKey(it)).querySelector('.grp-body').appendChild(makeCard(it))});
+    $('#vazio').hidden=state.items.length>0;
+    $('#aviso-ex').hidden=!state.sample;
+    refreshCats();
+    recalc();
+  }
+  function applyCfg(){
+    document.querySelectorAll('[data-cfg]').forEach(function(el){
+      var v=state.cfg[el.dataset.cfg];
+      if(el.type==='checkbox') el.checked=!!v; else el.value=v==null?'':v;
+    });
+    syncModo();
+  }
+  function syncModo(){
+    var m=state.cfg.modo==='markup'?'markup':'margem';
+    document.querySelectorAll('[data-modo]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.modo===m))});
+    $('#f-margem').hidden=m!=='margem';
+    $('#f-markup').hidden=m!=='markup';
+  }
+
+  /* ---------- cálculo e pintura ---------- */
+  function paintCard(card,r){
+    function set(k,t,neg){
+      var el=card.querySelector('[data-o="'+k+'"]'); if(!el) return;
+      el.textContent=t;
+      if(neg!==undefined) el.classList.toggle('neg',neg);
+    }
+    if(!r||r.invalid){
+      ['pav','pcc','mkav','mkcc','mbav','mbcc','lcav','lccc','mlav','mlcc','desc'].forEach(function(k){set(k,'—',false)});
+      set('custo',r?fm(r.custo):'—');
+      return;
+    }
+    set('custo',fm(r.custo));
+    set('pav',fm(r.av.preco)); set('pcc',fm(r.cc.preco));
+    set('mkav',fp(r.av.markup)); set('mkcc',fp(r.cc.markup));
+    set('mbav',fp(r.av.mbruta)); set('mbcc',fp(r.cc.mbruta));
+    set('lcav',fm(r.av.lucro),r.av.lucro<0); set('lccc',fm(r.cc.lucro),r.cc.lucro<0);
+    set('mlav',fp(r.av.mliq)); set('mlcc',fp(r.cc.mliq));
+    set('desc',fp(r.desc));
+  }
+  function recalc(){
+    var cfg=state.cfg, n=pnum;
+    var mc=Math.min(1,Math.max(0,n(cfg.pcc)/100));
+    var rec=0,luc=0,cus=0,qt=0;
+    var cats=new Map();
+    R.clear();
+    state.items.forEach(function(it){
+      var r=calc(it,cfg); R.set(it.id,r);
+      var card=cardEl(it.id); if(card) paintCard(card,r);
+      var k=catKey(it);
+      if(!cats.has(k)) cats.set(k,{name:catName(it),n:0,q:0,rec:0,luc:0});
+      var c=cats.get(k); c.n++;
+      if(r&&!r.invalid){
+        var q=n(it.qtd);
+        var rv=q*(r.av.preco*(1-mc)+r.cc.preco*mc);
+        var lc=q*(r.av.lucro*(1-mc)+r.cc.lucro*mc);
+        rec+=rv; luc+=lc; cus+=q*r.custo; qt+=q;
+        c.q+=q; c.rec+=rv; c.luc+=lc;
+      }
+    });
+    /* resumo */
+    $('#s-fat').textContent=fm(rec);
+    $('#s-qtd').textContent=qt>0?(qt.toLocaleString('pt-BR')+' peças por mês'):'estimado pela sua lista';
+    var sl=$('#s-luc'); sl.textContent=fm(luc); sl.classList.toggle('neg',luc<0); sl.classList.toggle('pos',luc>0);
+    $('#s-mliq').textContent=rec>0?fp(luc/rec):'—';
+    $('#s-mk').textContent=cus>0?fp(rec/cus-1):'—';
+    $('#s-mkx').textContent=cus>0?('×'+(rec/cus).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' sobre o custo das peças'):'sobre o custo das peças';
+    /* rateio e alertas */
+    var vend=n(cfg.vendas), fix=vend>0?n(cfg.fixas)/vend:0;
+    $('#rateio').textContent='Rateio das despesas fixas: '+fp(fix)+' do preço de cada peça.';
+    var d=1-n(cfg.imp)/100-n(cfg.com)/100-n(cfg.tav)/100-fix-n(cfg.margem)/100;
+    var al=$('#alerta'), msg='';
+    if(cfg.modo!=='markup'&&d<=0.02) msg='Impostos, comissão, taxas, rateio das despesas fixas e margem desejada somam quase 100% do preço. Reduza algum deles para o preço fechar.';
+    else if(cfg.repassar&&n(cfg.tcc)>=99) msg='A taxa do cartão precisa ser menor que 100%.';
+    al.hidden=!msg; al.textContent=msg;
+    /* dica de vendas */
+    var hv=$('#hint-vendas');
+    if(rec>0&&(vend<=0||Math.abs(rec-vend)/vend>0.1)){
+      $('#hint-vendas-t').textContent='Pela sua lista, você vende cerca de '+fm(rec)+' por mês. Nas premissas, você informou '+fm(vend)+'.';
+      hv.hidden=false; hv.dataset.val=String(Math.round(rec));
+    } else hv.hidden=true;
+    /* cabeçalhos de grupo */
+    lista.querySelectorAll('.grp').forEach(function(g){
+      var c=cats.get(g.dataset.k); if(!c) return;
+      g.querySelector('[data-o="g-n"]').textContent=c.n+(c.n===1?' peça':' peças');
+      var gl=g.querySelector('[data-o="g-luc"]'); gl.textContent=fm(c.luc); gl.classList.toggle('neg',c.luc<0);
+    });
+    /* por categoria */
+    var arr=Array.from(cats.values()).filter(function(c){return c.rec>0});
+    var box=$('#porcat');
+    if(!arr.length){ box.innerHTML='<p class="hint" style="margin:0">Preencha o custo e a quantidade de uma peça para ver o resumo por categoria.</p>'; }
+    else{
+      var max=Math.max.apply(null,arr.map(function(c){return c.luc}).concat([0.01]));
+      box.innerHTML=arr.map(function(c){
+        var w=Math.max(0,c.luc)/max*100;
+        return '<div class="crow"><div class="cname">'+esc(c.name)+'<small>'+c.n+(c.n===1?' peça · ':' peças · ')+c.q.toLocaleString('pt-BR')+' un. por mês</small></div>'+
+          '<div class="cbar" aria-hidden="true"><i style="width:'+w.toFixed(1)+'%"></i></div>'+
+          '<div class="cnum"><span class="'+(c.luc<0?'neg':'pos')+'">'+fm(c.luc)+'</span><small>margem '+fp(c.luc/c.rec)+' · fatura '+fm(c.rec)+'</small></div></div>';
+      }).join('');
+    }
+  }
+
+  /* ---------- toast ---------- */
+  var toastTimer=null,undoFn=null;
+  function toast(t,undo){
+    $('#toast-t').textContent=t;
+    undoFn=undo||null;
+    $('#toast-b').hidden=!undo;
+    $('#toast').hidden=false;
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){$('#toast').hidden=true;undoFn=null},6000);
+  }
+  $('#toast-b').addEventListener('click',function(){if(undoFn){var f=undoFn;undoFn=null;f()}$('#toast').hidden=true});
+
+  /* ---------- eventos ---------- */
+  document.querySelectorAll('[data-cfg]').forEach(function(el){
+    el.addEventListener('input',function(){
+      state.cfg[el.dataset.cfg]=el.type==='checkbox'?el.checked:el.value;
+      touch(); recalc();
+    });
+  });
+  document.querySelectorAll('[data-modo]').forEach(function(b){
+    b.addEventListener('click',function(){state.cfg.modo=b.dataset.modo;syncModo();touch();recalc()});
+  });
+  $('#btn-vendas').addEventListener('click',function(){
+    var v=$('#hint-vendas').dataset.val; if(!v) return;
+    state.cfg.vendas=v; $('#c-vendas').value=v; touch(); recalc();
+  });
+
+  lista.addEventListener('input',function(e){
+    var el=e.target, f=el.dataset&&el.dataset.f; if(!f) return;
+    var card=el.closest('.prod'), it=card&&byId(card.dataset.id); if(!it) return;
+    it[f]=el.value; touch(); recalc();
+  });
+  lista.addEventListener('focusout',function(e){
+    var card=e.target.closest&&e.target.closest('.prod'); if(!card) return;
+    if(e.relatedTarget&&card.contains(e.relatedTarget)) return;
+    var it=byId(card.dataset.id); if(!it) return;
+    var k=catKey(it);
+    if(card.dataset.k===k) return;
+    var g=groupEl(k);
+    if(!g){g=makeGroup(k,catName(it));lista.appendChild(g)}
+    g.querySelector('.grp-body').appendChild(card);
+    card.dataset.k=k;
+    lista.querySelectorAll('.grp').forEach(function(x){if(!x.querySelector('.prod')) x.remove()});
+    refreshCats(); recalc();
+  });
+  function addItem(cat,after){
+    var it=mkItem('',cat||'','','','','');
+    if(after==null) state.items.push(it); else state.items.splice(after+1,0,it);
+    touch(); buildAll();
+    var inp=document.getElementById(it.id+'-nome');
+    if(inp){inp.focus();inp.scrollIntoView({block:'center'})}
+  }
+  lista.addEventListener('click',function(e){
+    var b=e.target.closest('[data-act]'); if(!b) return;
+    var act=b.dataset.act;
+    if(act==='add-cat'){
+      var g=b.closest('.grp'), name=g.querySelector('h3').textContent;
+      addItem(name==='Sem categoria'?'':name);
+      return;
+    }
+    var card=b.closest('.prod'), it=card&&byId(card.dataset.id); if(!it) return;
+    var idx=state.items.indexOf(it);
+    if(act==='dup'){
+      var c=mkItem(it.nome?it.nome+' (cópia)':'',it.cat,it.peca,it.emb,it.out,it.qtd);
+      state.items.splice(idx+1,0,c); touch(); buildAll();
+      var inp=document.getElementById(c.id+'-nome'); if(inp){inp.focus();inp.scrollIntoView({block:'center'})}
+    }
+    if(act==='del'){
+      state.items.splice(idx,1); touch(); buildAll();
+      toast('Peça removida.',function(){state.items.splice(idx,0,it);touch();buildAll()});
+    }
+  });
+  $('#btn-add').addEventListener('click',function(){
+    var last=state.items.length?state.items[state.items.length-1].cat:'';
+    addItem(last);
+  });
+  $('#btn-zero').addEventListener('click',function(){
+    state.items=[mkItem('','','','','','')]; touch(); buildAll();
+    var inp=lista.querySelector('[data-f="nome"]'); if(inp) inp.focus();
+  });
+  $('#btn-fechar-ex').addEventListener('click',function(){state.sample=false;$('#aviso-ex').hidden=true;saveLocal();flush()});
+  $('#btn-copiar').addEventListener('click',function(){
+    var groups=[],map={};
+    state.items.forEach(function(it){
+      var r=R.get(it.id); if(!r||r.invalid) return;
+      var k=catKey(it);
+      if(!map[k]){map[k]={name:catName(it),lines:[]};groups.push(map[k])}
+      map[k].lines.push('• '+(it.nome.trim()||'Peça')+': '+fm(r.av.preco)+' à vista | '+fm(r.cc.preco)+' no cartão');
+    });
+    if(!groups.length){toast('Preencha o custo de alguma peça primeiro.');return}
+    var txt=groups.map(function(g){return g.name+'\n'+g.lines.join('\n')}).join('\n\n');
+    var done=function(){toast('Tabela de preços copiada.')};
+    var fail=function(){toast('Não foi possível copiar neste aparelho.')};
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,fail); else fail();
+    }catch(err){fail()}
+  });
+
+  /* ---------- início ---------- */
+  state=normalize(loadLocal());
+  applyCfg();
+  buildAll();
+
+  (function connect(){
+    var use=window.claude&&window.claude.use;
+    if(!use){setStatus('Salva neste aparelho');return}
+    use.call(window.claude,'db').then(function(db){
+      if(!db){setStatus('Salva neste aparelho');return}
+      ref=db.doc(DB_PATH);
+      ref.onSnapshot(function(snap){
+        if(snap.metadata&&snap.metadata.fromCache) return;
+        var d=snap.exists?snap.data():null;
+        if(d&&Array.isArray(d.items)){
+          var remote=normalize(JSON.parse(JSON.stringify(d)));
+          if(!state.rev||remote.rev>state.rev){
+            if(editing()&&state.rev) return;
+            state=remote; saveLocal(); applyCfg(); buildAll(); setStatus('Salvo');
+          } else if(remote.rev<state.rev){ flush(); }
+          else setStatus('Salvo');
+        } else if(state.rev){ flush(); }
+      },function(){ref=null;setStatus('Salva neste aparelho')});
+    },function(){setStatus('Salva neste aparelho')});
+  })();
+})();
+</script>
+
+</body></html>
